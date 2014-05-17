@@ -87,7 +87,7 @@ static int extract_binobj (RBinFile *bf, RBinObject *o, int idx ) {
 	ut64 boffset = o ? o->boffset : 0;
 	ut64 bin_size = o ? o->obj_size : 0;
 	const ut8 *bytes = bf ? r_buf_buffer (bf->buf) : NULL;
-	ut64 sz = bf ? r_buf_size (bf->buf) : 0;
+	//ut64 sz = bf ? r_buf_size (bf->buf) : 0;
 	RBinInfo *info = o ? o->info : NULL;
 	const char *arch = info ? info->arch : "unknown";
 	char bits = info ? info->bits : 0;
@@ -137,7 +137,7 @@ static int extract_binobj (RBinFile *bf, RBinObject *o, int idx ) {
 		eprintf ("Error extracting %s\n", outfile);
 		res = R_FALSE;
 	} else {
-		printf ("%s created (%i)\n", outfile, bin_size);
+		printf ("%s created (%"PFMT64d")\n", outfile, bin_size);
 		res = R_TRUE;
 	}
 
@@ -479,7 +479,7 @@ int main(int argc, char **argv) {
 		code = malloc (strlen (p)+1);
 		if (!code) {
 		    return 1;
-	        }     
+	    }
 		codelen = r_hex_str2bin (p, code);
 		if (!arch) arch = "x86";
 		if (!bits) bits = 32;

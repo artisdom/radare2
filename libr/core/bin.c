@@ -764,9 +764,13 @@ static int bin_symbols (RCore *r, int mode, ut64 baddr, int va, ut64 at, const c
 				r_flag_set (r->flags, str, addr, symbol->size, 0);
 			}
 
-			if (!strncmp (symbol->type, "OBJECT", 6))
-					r_meta_add (r->anal, R_META_TYPE_DATA, addr,
-                                            addr + symbol->size, name);
+#if 0
+			// dunno why this is here and mips results in wrong dis
+			if (!strncmp (symbol->type, "OBJECT", 6)) {
+				r_meta_add (r->anal, R_META_TYPE_DATA, addr,
+					addr + symbol->size, name);
+			}
+#endif
 
 			dname = r_bin_demangle (r->bin->cur, symbol->name);
 			if (dname) {
@@ -872,7 +876,8 @@ static int bin_sections (RCore *r, int mode, ut64 baddr, int va, ut64 at, const 
 		int fd = r_core_file_cur_fd(r);
 		r_flag_space_set (r->flags, "sections");
 		r_list_foreach (sections, iter, section) {
-			ut64 addr = va? r_bin_get_vaddr (r->bin, baddr, section->offset,
+// baddr already implicit in section->rva ?
+			ut64 addr = va? r_bin_get_vaddr (r->bin, 0, section->offset,
 				section->rva): section->offset;
 			if (!secbase || (section->rva && section->rva <secbase)) // ??
 				secbase = section->rva;
@@ -1205,7 +1210,9 @@ R_API int r_core_bin_raise (RCore *core, ut32 binfile_idx, ut32 binobj_idx) {
 
 	if (!r_bin_select_by_ids (bin, binfile_idx, binobj_idx)) return R_FALSE;
 	binfile = r_core_bin_cur (core);
-	r_io_raise (core->io, binfile->fd);
+	if (binfile) {
+		r_io_raise (core->io, binfile->fd);
+	}
 	core->switch_file_view = 1;
 	return binfile && r_core_bin_set_env (core, binfile) && r_core_block_read (core, 0);
 }
@@ -1220,7 +1227,9 @@ R_API int r_core_bin_delete (RCore *core, ut32 binfile_idx, ut32 binobj_idx) {
 
 	if (!r_bin_object_delete (bin, binfile_idx, binobj_idx)) return R_FALSE;
 	binfile = r_core_bin_cur (core);
-	r_io_raise (core->io, binfile->fd);
+	if (binfile) {
+		r_io_raise (core->io, binfile->fd);
+	}
 	core->switch_file_view = 1;
 	return binfile && r_core_bin_set_env (core, binfile) && r_core_block_read (core, 0);
 }

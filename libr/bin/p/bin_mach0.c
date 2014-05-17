@@ -139,7 +139,7 @@ static RList* symbols(RBinFile *arch) {
 }
 
 static RList* imports(RBinFile *arch) {
-	struct MACH0_(r_bin_mach0_obj_t) *bin = arch->o->bin_obj;
+	struct MACH0_(r_bin_mach0_obj_t) *bin = arch ? arch->o->bin_obj : NULL;
 	struct r_bin_mach0_import_t *imports = NULL;
 	const char *name, *type;
 	RBinImport *ptr = NULL;
@@ -147,7 +147,7 @@ static RList* imports(RBinFile *arch) {
 	int i;
 	RBinObject *obj = arch ? arch->o : NULL;
 
-	if (!obj || !obj->bin_obj || !(ret = r_list_newf (free)))
+	if (!obj || !bin || !obj->bin_obj || !(ret = r_list_newf (free)))
 		return NULL;
 
 	if (!(imports = MACH0_(r_bin_mach0_get_imports) (arch->o->bin_obj)))
@@ -186,9 +186,13 @@ static RList* relocs(RBinFile *arch) {
 	RList *ret = NULL;
 	RBinReloc *ptr = NULL;
 	struct r_bin_mach0_reloc_t *relocs = NULL;
-	struct MACH0_(r_bin_mach0_obj_t) *bin = arch->o->bin_obj;
+	struct MACH0_(r_bin_mach0_obj_t) *bin = NULL;
 	int i;
 	RBinObject *obj = arch ? arch->o : NULL;
+
+	if (arch && arch->o) {
+		bin = arch->o->bin_obj;
+	}
 
 	if (!obj || !obj->bin_obj || !(ret = r_list_newf (free)))
 		return NULL;

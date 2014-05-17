@@ -653,13 +653,14 @@ static int r_bin_files_populate_from_xtrlist (RBinFile *binfile, ut64 baseaddr, 
 static RBinFile * r_bin_file_xtr_load_bytes (RBinXtrPlugin *xtr, const char *filename, const ut8 *bytes, ut64 sz, ut64 baseaddr, ut64 loadaddr, int idx, int fd, int rawstr) {
 	RBinFile * bf = LOCAL_RBIN_ACCESS ? r_bin_file_find_by_name (LOCAL_RBIN_ACCESS, filename) : NULL;
 	if (!bf) {
+		if (!LOCAL_RBIN_ACCESS) return NULL;
 		bf = r_bin_file_create_append (LOCAL_RBIN_ACCESS, filename, bytes, sz, rawstr, fd, xtr->name);
 		if (!bf) return bf;
 	}
 	if (idx == 0 && xtr && xtr && bytes) {
 		RList *xtr_data_list = xtr->extractall_from_bytes (bytes, sz);
 		if (xtr_data_list){
-			if (!r_bin_files_populate_from_xtrlist (bf, baseaddr, loadaddr, xtr_data_list)) 
+			if (!r_bin_files_populate_from_xtrlist (bf, baseaddr, loadaddr, xtr_data_list))
 				eprintf ("Error: failed to load the Extracted Objects with %s for %s.", xtr->name, bf->file);
 		}
 		r_list_free (xtr_data_list);
@@ -667,7 +668,7 @@ static RBinFile * r_bin_file_xtr_load_bytes (RBinXtrPlugin *xtr, const char *fil
 		if (idx == 0) idx = 1;
 		RBinXtrData *xtr_data = xtr->extract_from_bytes (bytes, sz, idx);
 		if (xtr_data){
-			if (r_bin_file_object_new_from_xtr_data (bf, baseaddr, loadaddr, xtr_data)) 
+			if (r_bin_file_object_new_from_xtr_data (bf, baseaddr, loadaddr, xtr_data))
 				eprintf ("Error: failed to load the Extracted Objects with %s for %s.", xtr->name, bf->file);
 		}
 		r_bin_xtrdata_free (xtr_data);
@@ -768,7 +769,7 @@ static RBinObject * r_bin_object_new (RBinFile *binfile, RBinPlugin *plugin, ut6
 		o->bin_obj = plugin->load_bytes (bytes+offset, sz, loadaddr, sdb);
 	} else if (binfile && plugin && plugin->load) {
 		// XXX - haha, this is a hack.
-		// switching out the current object for the new 
+		// switching out the current object for the new
 		// one to be processed
 		RBinObject *old_o = binfile->o;
 		binfile->o = o;
@@ -788,7 +789,7 @@ static RBinObject * r_bin_object_new (RBinFile *binfile, RBinPlugin *plugin, ut6
 	// XXX - binfile could be null here meaning an improper load
 	r_bin_object_set_items (binfile, o);
 	r_bin_file_object_add (binfile, o);
-	// XXX this is a very hacky alternative to rewriting the 
+	// XXX this is a very hacky alternative to rewriting the
 	// RIO stuff, as discussed here:
 	if (o->sections) {
 		r_bin_object_set_sections (binfile, o);
@@ -1152,7 +1153,10 @@ R_API RBin* r_bin_new() {
 
 R_API int r_bin_use_arch(RBin *bin, const char *arch, int bits, const char *name) {
 	RBinFile *binfile = r_bin_file_find_by_arch_bits (bin, arch, bits, name);
-	RBinObject *obj = r_bin_object_find_by_arch_bits (binfile, arch, bits, name);
+	RBinObject *obj = NULL;
+	if (binfile) {
+		obj = r_bin_object_find_by_arch_bits (binfile, arch, bits, name);
+	}
 	return binfile && r_bin_file_set_cur_binfile_obj (bin, binfile, obj);
 }
 
@@ -1194,7 +1198,9 @@ R_API int r_bin_select(RBin *bin, const char *arch, int bits, const char *name) 
 	RBinObject *obj = NULL;
 	name = !name && cur ? cur->file : name;
 	binfile = r_bin_file_find_by_arch_bits (bin, arch, bits, name);
-	obj = r_bin_object_find_by_arch_bits (binfile, arch, bits, name);
+	if (binfile && name) {
+		obj = r_bin_object_find_by_arch_bits (binfile, arch, bits, name);
+	}
 	return binfile && r_bin_file_set_cur_binfile_obj (bin, binfile, obj);
 }
 
@@ -1273,7 +1279,7 @@ R_API int r_bin_object_delete (RBin *bin, ut32 binfile_id, ut32 binobj_id) {
 	}
 
 	// lazy way out, always leaving at least 1 bin object loaded
-	if (r_list_length (binfile->objs) > 1) {
+	if (binfile && (r_list_length (binfile->objs) > 1)) {
 		binfile->o = NULL;
 		r_list_delete_data (binfile->objs, obj);
 		obj = (RBinObject *) r_list_get_n (binfile->objs, 0);

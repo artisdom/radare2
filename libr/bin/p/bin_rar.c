@@ -39,9 +39,11 @@ static Sdb* get_sdb (RBinObject *o) {
 
 static void * load_bytes(const ut8 *buf, ut64 sz, ut64 loadaddr, Sdb *sdb){
 	RBuffer *tbuf = NULL;
-	RRarBinObj *res = R_NEW0 (RRarBinObj);
+	RRarBinObj *res = NULL;
 
 	if (!buf || sz == 0 || sz == UT64_MAX) return NULL;
+
+	res = R_NEW0 (RRarBinObj);
 	tbuf = r_buf_new();
 	r_buf_set_bytes (tbuf, buf, sz);
 	res->buf = tbuf;
@@ -67,7 +69,7 @@ static RList* entries(RBinFile *arch) {
 	RBinAddr *ptr = NULL;
 	RRarBinObj *bin_obj = arch && arch->o ? arch->o->bin_obj : NULL;
 	const ut8 *buf = bin_obj ? r_buf_buffer (bin_obj->buf) : NULL;
-	ut64 sz = arch ? r_buf_size (bin_obj->buf): 0;
+	ut64 sz = arch && bin_obj ? r_buf_size (bin_obj->buf) : 0;
 
 	if (!ret) return NULL;
 	ret->free = free;
@@ -85,8 +87,10 @@ static RList* sections(RBinFile *arch) {
 	RBinSection *ptr = NULL;
 	RRarBinObj *bin_obj = arch && arch->o ? arch->o->bin_obj : NULL;
 	const ut8 *buf = bin_obj ? r_buf_buffer (bin_obj->buf) : NULL;
-	ut64 sz = arch ? r_buf_size (bin_obj->buf): 0;
-
+	ut64 sz = 0;
+	if (bin_obj) {
+		sz = arch ? r_buf_size (bin_obj->buf): 0;
+	}
 
 	if (!(ret = r_list_new ()))
 		return NULL;
@@ -134,12 +138,12 @@ static RBinInfo* info(RBinFile *arch) {
 	RBinInfo *ret = R_NEW0 (RBinInfo);
 	RRarBinObj *bin_obj = arch && arch->o ? arch->o->bin_obj : NULL;
 	const ut8 *buf = bin_obj ? r_buf_buffer (bin_obj->buf) : NULL;
-	ut64 sz = arch ? r_buf_size (bin_obj->buf): 0;
+	ut64 sz = arch && bin_obj ? r_buf_size (bin_obj->buf): 0;
 
-
-	int bits = 32;
+	int bits = 32; // Default value
 
 	if (!ret || !buf || sz < 0x30) return NULL;
+
 	strncpy (ret->file, arch->file, R_BIN_SIZEOF_STRINGS);
 	strncpy (ret->rpath, "NONE", R_BIN_SIZEOF_STRINGS);
 	strncpy (ret->rclass, "rar", R_BIN_SIZEOF_STRINGS);
